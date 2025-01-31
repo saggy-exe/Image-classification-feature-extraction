@@ -1,8 +1,9 @@
 import os
-import cv2
 from img2vec_pytorch import Img2Vec
 from PIL import Image
-from torchvision.datasets.folder import pil_loader
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+import pickle
 
 # prepare the data
 
@@ -19,7 +20,7 @@ for j,dir_ in enumerate([train_dir, val_dir]):
     for category in os.listdir(dir_):
         for img_path in os.listdir(os.path.join(dir_, category)):
             img_path_ = os.path.join(dir_, category, img_path)
-            img = pil_loader(img_path_)
+            img = Image.open(img_path_).convert('RGB')
 
             img_features = img2vec.get_vec(img)
 
@@ -28,10 +29,19 @@ for j,dir_ in enumerate([train_dir, val_dir]):
     data[['training_data', 'validation_data'][j]] = features
     data[['training_labels', 'validation_labels'][j]] = labels
 
-print(data.keys())
-
 # train model
+
+model = RandomForestClassifier()
+model.fit(data['training_data'], data['training_labels'])
 
 # test performance
 
+y_pred = model.predict(data['validation_data'])
+score = accuracy_score(y_pred, data['validation_labels'])
+
+print(score)
+
 # save the model
+with open('./model.p', 'wb') as f:
+    pickle.dump(model, f)
+    f.close()
